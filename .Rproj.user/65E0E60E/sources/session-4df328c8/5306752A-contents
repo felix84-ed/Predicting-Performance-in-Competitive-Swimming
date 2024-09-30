@@ -1,0 +1,151 @@
+# Abschnitt 1: Laden der notwendigen Pakete und Datenvorbereitung
+
+if (!require(dplyr)) {
+  install.packages("dplyr")
+  library(dplyr)
+}
+
+if (!require(tidyr)) {
+  install.packages("tidyr")
+  library(tidyr)
+}
+
+if (!require(randomForest)) {
+  install.packages("randomForest")
+  library(randomForest)
+}
+
+if (!require(pROC)) {
+  install.packages("pROC")
+  library(pROC)
+}
+
+if (!require(caret)) {
+  install.packages("caret")
+  library(caret)
+}
+
+# Laden des Datensatzes
+data <- read.csv("/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/extended_dataset_processed.csv")
+
+# Definieren der Zielvariable basierend auf den FINA-Punkten im Alter von 18 Jahren (nur zwei Gruppen)
+data <- data %>%
+  group_by(unique_id, Event) %>%
+  mutate(group = case_when(
+    Fina < 750 & Alter == 18 ~ 2,    # Gruppe 2: FINA < 750
+    Fina >= 750 & Alter == 18 ~ 1,   # Gruppe 1: FINA >= 750
+    TRUE ~ NA_real_  # Setzt NA für alle anderen Altersgruppen
+  )) %>%
+  fill(group, .direction = "downup") %>%
+  ungroup()
+
+# Entfernen von Zeilen mit fehlenden Gruppenwerten
+data_clean <- data %>% filter(!is.na(group))
+
+# Behandlung fehlender Werte: Ersetzen von NA-Werten in numerischen Variablen durch den Median
+numeric_features <- c("Frühestes_Alter", "improvement_rate", "max_yearly_improvement", 
+                      "years_in_top100", "max_dist_categories", "max_disciplines", 
+                      "fina_16", "max_z_time_rate", "z_time_ratio")
+
+data_clean[numeric_features] <- data_clean[numeric_features] %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+data_clean$group <- as.factor(data_clean$group)
+
+# Abschnitt 2: Cross-Validation - 5 Folds erstellen
+
+set.seed(123)  # Zufallsgenerator für Reproduzierbarkeit
+folds <- createFolds(data_clean$group, k = 5)
+
+# Initialisierung von Listen für die Modelle und Testdatensätze
+rf_models <- list()
+test_sets <- list()
+
+# Training der Random Forest Modelle für jeden Fold
+for (i in 1:5) {
+  train_idx <- unlist(folds[-i])
+  test_idx <- unlist(folds[i])
+  
+  train_data_fold <- data_clean[train_idx, ]
+  test_data_fold <- data_clean[test_idx, ]
+  
+  # Klassengewichtung berechnen
+  class_weights <- table(train_data_fold$group)
+  class_weights <- max(class_weights) / class_weights  # Umgekehrte Gewichtung
+  
+  # Random Forest Modell mit Klassengewichtung trainieren
+  rf_model_fold <- randomForest(group ~ Frühestes_Alter + improvement_rate + max_yearly_improvement +
+                                  years_in_top100 + max_dist_categories + max_disciplines + 
+                                  fina_16 + max_z_time_rate + z_time_ratio, 
+                                data = train_data_fold, importance = TRUE, classwt = class_weights)
+  
+  # Speichern des Modells und des Testdatensatzes
+  rf_models[[i]] <- rf_model_fold
+  test_sets[[i]] <- test_data_fold
+}
+
+# Abschnitt 3: Berechnen der ROC-Kurven für jeden Fold
+
+roc_curves <- list()
+auc_values <- numeric(5)  # Speichert die AUC-Werte für jeden Fold
+
+for (i in 1:5) {
+  # Vorhersagen auf Wahrscheinlichkeitsbasis für das Random Forest Modell pro Fold
+  rf_probabilities_fold <- predict(rf_models[[i]], newdata = test_sets[[i]], type = "prob")
+  
+  # Berechnen der ROC-Kurve für Gruppe 1 vs Gruppe 2
+  roc_curve_fold <- roc(test_sets[[i]]$group, rf_probabilities_fold[, 2], levels = c(1, 2), direction = "<")
+  
+  # Speichern der ROC-Kurve und AUC für jeden Fold
+  roc_curves[[i]] <- roc_curve_fold
+  auc_values[i] <- auc(roc_curve_fold)
+}
+
+# Abschnitt 4: Durchschnitts-ROC, Standardabweichung und Plot erstellen
+
+# FPR-Gitter für die Interpolation
+fpr_grid <- seq(0, 1, length.out = 100)
+
+# Initialisierung einer Matrix für die interpolierten TPR-Werte
+tpr_interpolated <- matrix(NA, nrow = 5, ncol = length(fpr_grid))
+
+for (i in 1:5) {
+  tpr_interpolated[i, ] <- approx(roc_curves[[i]]$specificities, roc_curves[[i]]$sensitivities, xout = fpr_grid, ties = mean)$y
+}
+
+# Durchschnittliche TPR und Standardabweichung berechnen
+mean_tpr <- apply(tpr_interpolated, 2, mean, na.rm = TRUE)
+std_tpr <- apply(tpr_interpolated, 2, sd, na.rm = TRUE)
+
+# Plot der ROC-Kurven
+colors <- rainbow(5, alpha = 0.4)  # Transparente Farben für die Folds
+
+plot(fpr_grid, mean_tpr, type = "l", col = "blue", lwd = 2,
+     xlab = "False Positive Rate (1 - Specificity)", ylab = "True Positive Rate (Sensitivity)",
+     main = "ROC Curve for Random Forest - Mean and Folds")
+abline(a = 0, b = 1, col = "red", lty = 2)
+
+for (i in 1:5) {
+  lines(fpr_grid, tpr_interpolated[i, ], col = colors[i], lwd = 2)
+}
+
+# Hinzufügen der Standardabweichung als schraffierten Bereich
+polygon(c(fpr_grid, rev(fpr_grid)), 
+        c(mean_tpr + std_tpr, rev(mean_tpr - std_tpr)),
+        col = rgb(0.7, 0.7, 0.7, alpha = 0.2), border = NA)
+
+legend("bottomright", legend = c(paste0("ROC fold ", 1:5, " (AUC = ", round(auc_values, 2), ")"), 
+                                 "Mean ROC (AUC)", "Chance Line"), 
+       col = c(colors, "blue", "red"), lwd = 2, lty = 1)
+
+# Abschnitt 5: Speichern der Ergebnisse als CSV-Datei
+
+results <- data.frame(Fold = paste0("Fold ", 1:5),
+                      AUC = auc_values)
+
+mean_auc <- mean(auc_values)
+std_auc <- sd(auc_values)
+
+results <- rbind(results, data.frame(Fold = "Mean", AUC = paste0(round(mean_auc, 2), " ± ", round(std_auc, 2))))
+
+write.csv(results, file = "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/Ergebnisse/RandomForest_ROC_Results.csv")

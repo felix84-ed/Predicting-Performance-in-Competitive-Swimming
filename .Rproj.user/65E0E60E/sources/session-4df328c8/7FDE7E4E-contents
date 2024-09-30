@@ -1,0 +1,51 @@
+# Notwendige Bibliotheken laden
+library(lme4)
+library(dplyr)
+library(ggplot2)
+library(Metrics)
+
+# Daten einlesen
+file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/gesamt_daten.csv"
+data <- read.csv(file_path)
+
+# Erzeugen einer eindeutigen Schwimmer-ID
+data <- data %>%
+  mutate(swimmer_id = paste(name, Jg, sep = "_"))
+
+# Kombinieren von "Streckenlänge" und "Disziplin", um die Events/Disziplinen zu erhalten
+data <- data %>%
+  mutate(event = paste(Streckenlänge, Disziplin, sep = " "))
+
+# Filtere die originalen Daten für die spezifische Disziplin
+data_specific_event <- data %>% filter(event == "100 F")
+
+# Zufällige Stichprobe für Trainings- und Testdaten (66% Training, 33% Test)
+set.seed(123)
+train_indices <- sample(seq_len(nrow(data_specific_event)), size = 0.66 * nrow(data_specific_event))
+train_data <- data_specific_event[train_indices, ]
+test_data <- data_specific_event[-train_indices, ]
+
+# Modell auf den Trainingsdaten anpassen
+mlm_model_train <- lmer(Zeit ~ Alter + (1 | swimmer_id), data = train_data)
+summary(mlm_model_train)
+
+# Vorhersagen für die Testdaten treffen
+test_data$predictions <- predict(mlm_model_train, newdata = test_data, re.form = NA)
+
+# Fehlermetriken berechnen für jede Altersgruppe
+error_metrics <- test_data %>%
+  group_by(Alter) %>%
+  summarise(
+    MAE = mae(Zeit, predictions),
+    RMSE = rmse(Zeit, predictions)
+  )
+print(error_metrics)
+
+# Fehleranalyse und Vergleich der Fehlermetriken für verschiedene Altersgruppen
+ggplot(error_metrics, aes(x = Alter)) +
+  geom_bar(aes(y = MAE), stat = "identity", fill = "blue", alpha = 0.7) +
+  geom_line(aes(y = RMSE), color = "red", size = 1) +
+  labs(title = "Fehlermetriken für verschiedene Altersgruppen",
+       x = "Alter",
+       y = "Fehler (MAE und RMSE)") +
+  theme_minimal()

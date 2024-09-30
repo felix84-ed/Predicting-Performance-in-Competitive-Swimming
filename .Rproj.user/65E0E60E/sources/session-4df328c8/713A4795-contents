@@ -1,0 +1,94 @@
+# Notwendige Bibliotheken laden
+library(lme4)
+library(dplyr)
+
+# Daten einlesen
+file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/gesamt_daten.csv"
+data <- read.csv(file_path)
+
+# Erzeugen einer eindeutigen Schwimmer-ID
+data <- data %>%
+  mutate(swimmer_id = paste(name, Jg, sep = "_"))
+
+# Kombinieren von "Streckenlänge" und "Disziplin", um die Events/Disziplinen zu erhalten
+data <- data %>%
+  mutate(event = paste(Streckenlänge, Disziplin, sep = " "))
+
+# Filtere die originalen Daten für die spezifische Disziplin
+data_specific_event <- data %>% filter(event == "100 F")
+
+# Modell neu anpassen, falls notwendig
+mlm_model_specific <- lmer(Zeit ~ Alter + (1 | swimmer_id), data = data_specific_event)
+
+# Zusammenfassung des Modells
+summary(mlm_model_specific)
+
+# Neue Daten für Vorhersagen erstellen (für die spezifische Disziplin "100 F")
+new_data <- data.frame(
+  Alter = rep(18, 10),  # Beispielhaft 10 Vorhersagen für Alter 18
+  swimmer_id = rep('new_swimmer', 10),  # Dummy-Schwimmer-ID, da diese nicht verwendet wird
+  event = rep("100 F", 10)  # Spezifische Disziplin
+)
+
+# Vorhersagen treffen
+predictions <- predict(mlm_model_specific, newdata = new_data, re.form = NA)
+print(predictions)
+
+
+# Daten für die Vorhersagen vorbereiten
+data_specific_event$Prediction <- predict(mlm_model_specific, newdata = data_specific_event, re.form = NULL)
+
+# Scatterplot der Zeit vs. Alter mit den Vorhersagen
+ggplot(data_specific_event, aes(x = Alter, y = Zeit)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_line(aes(y = Prediction), color = "red") +
+  labs(title = "Vorhersagen der Zeit basierend auf dem Alter für 100 F",
+       x = "Alter",
+       y = "Zeit") +
+  theme_minimal()
+
+# Modellvalidierung
+# Residuenplot
+plot(mlm_model_specific)
+
+# QQ-Plot der Residuen
+qqnorm(resid(mlm_model_specific))
+qqline(resid(mlm_model_specific))
+
+# Histogramm der Residuen
+hist(resid(mlm_model_specific), breaks = 30, main = "Histogramm der Residuen", xlab = "Residuen", col = "orange")
+
+
+# Zufällige Stichprobe für Trainings- und Testdaten (70% Training, 30% Test)
+set.seed(123)  # Für Reproduzierbarkeit
+train_indices <- sample(seq_len(nrow(data_specific_event)), size = 0.7 * nrow(data_specific_event))
+train_data <- data_specific_event[train_indices, ]
+test_data <- data_specific_event[-train_indices, ]
+
+# Modell auf den Trainingsdaten anpassen
+mlm_model_train <- lmer(Zeit ~ Alter + (1 | swimmer_id), data = train_data)
+summary(mlm_model_train)
+
+# Vorhersagen für die Testdaten treffen
+test_data$predictions <- predict(mlm_model_train, newdata = test_data, re.form = NA)
+
+# Mean Absolute Error (MAE) und Root Mean Squared Error (RMSE) berechnen für jede Altersgruppe
+library(dplyr)
+library(Metrics)
+
+test_data <- test_data %>%
+  group_by(Alter) %>%
+  summarise(
+    MAE = mae(Zeit, predictions),
+    RMSE = rmse(Zeit, predictions)
+  )
+print(test_data)
+
+# Fehleranalyse und Vergleich der Fehlermetriken für verschiedene Altersgruppen
+ggplot(test_data, aes(x = Alter)) +
+  geom_bar(aes(y = MAE), stat = "identity", fill = "blue", alpha = 0.7) +
+  geom_line(aes(y = RMSE), color = "red", size = 1) +
+  labs(title = "Fehlermetriken für verschiedene Altersgruppen",
+       x = "Alter",
+       y = "Fehler (MAE und RMSE)") +
+  theme_minimal()

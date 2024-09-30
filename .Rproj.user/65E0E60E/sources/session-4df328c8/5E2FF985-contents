@@ -1,0 +1,55 @@
+# Laden der benötigten Bibliotheken
+library(dplyr)
+library(caret)
+library(randomForest)
+library(caTools)
+library(ggplot2)
+# Daten laden
+file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/extended_dataset.csv"
+data <- read.csv(file_path)
+
+# Daten für die Altersgruppen 11 bis 16 Jahre filtern
+data_filtered <- data %>%
+  filter(Alter >= 11 & Alter <= 16)
+
+# Sicherstellen, dass die relevanten Spalten vorhanden sind und keine fehlenden Werte enthalten
+data_filtered <- data_filtered %>%
+  select(unique_id, Frühestes_Alter, X.Nr_Disziplinen.Jahr., X.Nr_Dist_Kat.Jahr.,
+         X.Nr_Jahre_Top100.Allg., X.Nr_Jahre_Top100.Disz., 
+         percent_diff_improvement_11y, percent_diff_improvement_12y, 
+         percent_diff_improvement_13y, percent_diff_improvement_14y, 
+         Zeit) %>%
+  na.omit()
+
+# Auswahl der Features und Zielvariable
+features <- c('Frühestes_Alter', 'X.Nr_Disziplinen.Jahr.', 'X.Nr_Dist_Kat.Jahr.',
+              'X.Nr_Jahre_Top100.Allg.', 'X.Nr_Jahre_Top100.Disz.',
+              'percent_diff_improvement_11y', 'percent_diff_improvement_12y', 
+              'percent_diff_improvement_13y', 'percent_diff_improvement_14y')
+target <- 'Zeit'
+
+# Train/Test Split auf den Daten
+set.seed(123)
+split <- sample.split(data_filtered[[target]], SplitRatio = 0.8)
+train_data <- subset(data_filtered, split == TRUE)
+test_data <- subset(data_filtered, split == FALSE)
+
+# Beispiel für das Training eines Random Forest Modells
+
+rf_model <- randomForest(as.formula(paste(target, "~ .")), data = train_data, importance = TRUE, ntree = 500)
+
+# Vorhersagen auf dem Testdatensatz durchführen
+predictions <- predict(rf_model, newdata = test_data)
+
+# Modellbewertung
+mse <- mean((test_data[[target]] - predictions)^2)
+sst <- sum((test_data[[target]] - mean(test_data[[target]]))^2)
+sse <- sum((test_data[[target]] - predictions)^2)
+r_squared <- 1 - (sse / sst)
+
+# Ausgabe der Bewertung
+print(paste("MSE:", mse))
+print(paste("R²:", r_squared))
+
+# Feature Wichtigkeit
+importance(rf_model)

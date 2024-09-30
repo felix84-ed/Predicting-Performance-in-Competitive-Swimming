@@ -1,0 +1,34 @@
+{
+    "type": [
+        2,
+        2,
+        0,
+        1,
+        2,
+        3,
+        3,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+    ],
+    "data": [
+        "\nR version 4.3.0 (2023-04-21) -- \"Already Tomorrow\"\nCopyright (C) 2023 The R Foundation for Statistical Computing\nPlatform: aarch64-apple-darwin20 (64-bit)\n\nR is free software and comes with ABSOLUTELY NO WARRANTY.\nYou are welcome to redistribute it under certain conditions.\nType 'license()' or 'licence()' for distribution details.\n\n  Natural language support but running in an English locale\n\nR is a collaborative project with many contributors.\nType 'contributors()' for more information and\n'citation()' on how to cite R or R packages in publications.\n\n",
+        "Type 'demo()' for some demos, 'help()' for on-line help, or\n'help.start()' for an HTML browser interface to help.\nType 'q()' to quit R.\n\n[Workspace loaded from ~/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/BachelorArbeit/.RData]\n\n",
+        "> ",
+        "source(\"~/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/BachelorArbeit/Schritt2.R\", echo=TRUE)",
+        "\n> # Install and load necessary packages\n> install.packages(\"dplyr\")\nError in install.packages : Updating loaded packages\n\n> library(dplyr)\n",
+        "\nAttaching package: ‘dplyr’\n\n",
+        "The following objects are masked from ‘package:stats’:\n\n    filter, lag\n\n",
+        "The following objects are masked from ‘package:base’:\n\n    intersect, setdiff, setequal, union\n\n",
+        "\n> # Read the CSV file\n> data <- read.csv(\"/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/gesamt_daten_be ...\" ... [TRUNCATED] \n\n> # Berechne das früheste Einstiegsalter für jeden Sportler und füge das dem Datensatz hinzu.\n> data <- data %>%\n+   group_by(name, Jg) %>%\n+   mutate .... [TRUNCATED] \n\n> # Zähle die verschiedenen Lagen pro Sportler in jedem Alter\n> data <- data %>%\n+   group_by(name, Jg, Alter) %>%\n+   mutate(Anzahl_Disziplinen = n_d .... [TRUNCATED] ",
+        "\n\n> # Definiere eine Funktion um Streckenlänge zu kategorisieren\n> categorize_distance <- function(distance) {\n+   if (distance == 50) {\n+     return('S .... [TRUNCATED] \n\n> # Funktion zum Datensatz beifügen\n> data$Distanz_Kategorie <- sapply(data$Streckenlänge, categorize_distance)\n\n> # Gruppieren by name, Jg, and Alter and zähle Distanzkategorie jeweils\n> data <- data %>%\n+   group_by(name, Jg, Alter) %>%\n+   mutate(Anzahl_Distan .... [TRUNCATED] \n\n> # Temporäre Spalte entfernen\n> data$Distanz_Kategorie <- NULL",
+        "\n\n> # Anzahl der einzigartigen Altersgruppen für jeden Schwimmer berechnen, in denen er in den Top100 erscheint\n> data <- data %>%\n+   group_by(name, Jg .... [TRUNCATED] \n\n> # Abspeichern:\n> # Pfad, wo die CSV-Datei gespeichert werden soll\n> output_file_path <- \"/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDoc ...\" ... [TRUNCATED] \n\n> # Speichern des Datenrahmens als CSV\n> write.csv(data, file = output_file_path, row.names = FALSE)\n\n> # Zuweisen der neuen Spaltennamen\n> colnames(median_top10) <- c(\"Zeitraum\",\"50 B\", \"50 S\", \"50 F\", \"50 R\",\n+                             \"100 B\", \"1",
+        " ...\" ... [TRUNCATED] \n\n> # Ersetzen \"median_Top10\" durch den tatsächlichen Namen Ihres DataFrames\n> median_top10 <- median_top10 %>%\n+   mutate(Zeitraum = case_when(\n+     Z .... [TRUNCATED] \n\n> head(median_top10)\n  Zeitraum  50 B  50 S  50 F  50 R 100 B 100 S 100 F 100 R  200 B  200 S  200 F  200 R  200 L  400 F  400 L  800 F 1500 F\n1     2000 27.54 23.54 22.08 25.16 60.33 51.96 48.72 54.20 130.98 115.57 106.66 117.89 119.72 226.94 254.24 473.36 899.71\n2     2004 27.57 23.52 21.88 25.05 60.29 53.64 48.42",
+        " 53.64 131.12 115.28 106.38 116.75 119.12 225.08 251.48 469.28 891.16\n3     2008 27.02 22.87 21.24 24.41 58.93 50.82 47.30 52.32 127.84 114.21 104.88 114.84 116.12 222.16 249.54 464.08 883.40\n4     2012 26.82 22.92 21.44 24.52 59.03 51.11 47.65 52.50 127.57 114.09 105.06 114.24 116.56 223.73 248.94 463.82 882.64\n5     2016 26.56 22.72 21.34 24.30 58.64 50.66 47.50 52.41 127.10 113.38 105.10 114.94 115.74 223.60 249.42 462.28 880.20\n6     2021 26.40 22.74 21.46 24.17 58.31 50.37 47.21 52.02 127.00 113.82 104.52",
+        " 114.61 115.50 223.29 248.91 459.56 875.50\n\n> # Funktion, um den Medianwert basierend auf dem Jahr und der Disziplin zu holen\n> get_median <- function(year, discipline, median_df) {\n+   time_per .... [TRUNCATED] \n\n> # Hinzufügen der neuen Spalte 'Prozent Weltspitze'\n> data <- data %>%\n+   rowwise() %>%\n+   mutate(\n+     Zeitraum = case_when(\n+       Jahr >= 2000 .... [TRUNCATED] \n\nRestarting R session...\n\n"
+    ]
+}

@@ -1,0 +1,512 @@
+pull(avg_time)
+if (is.na(avg_time)) {
+print(paste("Problem bei der Verarbeitung von", file))
+}
+results[cycle, discipline] <- avg_time
+}
+}
+print(results)
+write.csv(results, file = "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze", row.names = TRUE)
+library(dplyr)
+library(readr)
+# Verzeichnispfad
+directory_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze"
+# Dateien auflisten
+files <- list.files(path = directory_path, pattern = "*.csv", full.names = TRUE)
+# Zyklus-Disziplin-Mapping und Ergebnismatrix
+cycle_map <- c("2000" = "2000-2003", "2004" = "2004-2007", "2008" = "2008-2011", "2012" = "2012-2015", "2016" = "2016-2020", "2021" = "2021-2023")
+results <- matrix(NA, nrow = 6, ncol = 17)
+colnames(results) <- c("50F", "50B", "50R", "50S", "100F", "100B", "100R", "100S", "200F", "200B", "200R", "200S", "200L", "400F", "400L", "800F", "1500F")
+rownames(results) <- names(cycle_map)
+for (file in files) {
+file_info <- strsplit(basename(file), "[_.]")[[1]]
+cycle_key <- file_info[1]
+discipline <- paste0(file_info[2], file_info[3])
+cycle <- cycle_map[cycle_key]
+if (!is.null(cycle) && discipline %in% colnames(results)) {
+data <- read_csv(file, col_types = cols(swim_time = col_character())) %>%
+mutate(swim_time = as.numeric(gsub(":", ".", swim_time))) %>%
+slice_head(n = 10) %>%
+summarise(avg_time = mean(swim_time, na.rm = TRUE)) %>%
+pull(avg_time)
+if (is.na(avg_time)) {
+print(paste("Problem bei der Verarbeitung von", file))
+}
+results[cycle, discipline] <- avg_time
+}
+}
+print(results)
+write.csv(results, file = "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze", row.names = TRUE)
+library(dplyr)
+library(readr)
+# Verzeichnispfad
+directory_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze"
+# Dateien auflisten
+files <- list.files(path = directory_path, pattern = "*.csv", full.names = TRUE)
+# Zyklus-Disziplin-Mapping und Ergebnismatrix
+cycle_map <- c("2000" = "2000-2003", "2004" = "2004-2007", "2008" = "2008-2011", "2012" = "2012-2015", "2016" = "2016-2020", "2021" = "2021-2023")
+results <- matrix(NA, nrow = 6, ncol = 17)
+colnames(results) <- c("50F", "50B", "50R", "50S", "100F", "100B", "100R", "100S", "200F", "200B", "200R", "200S", "200L", "400F", "400L", "800F", "1500F")
+rownames(results) <- names(cycle_map)
+# Funktion, um Zeitstring in Sekunden umzuwandeln
+convert_time_to_seconds <- function(time_str) {
+time_parts <- unlist(strsplit(time_str, "[:.,]"))
+if (length(time_parts) == 3) {
+# Format mm:ss,00
+return(as.numeric(time_parts[1]) * 60 + as.numeric(time_parts[2]) + as.numeric(time_parts[3])/100)
+} else {
+# Format ss.00
+return(as.numeric(time_parts[1]) + as.numeric(time_parts[2])/100)
+}
+}
+for (file in files) {
+file_info <- strsplit(basename(file), "[_.]")[[1]]
+cycle_key <- file_info[1]
+discipline <- paste0(file_info[2], file_info[3])
+cycle <- cycle_map[cycle_key]
+if (!is.null(cycle) && discipline %in% colnames(results)) {
+data <- read_csv(file, col_types = cols(swim_time = col_character())) %>%
+mutate(swim_time = sapply(swim_time, convert_time_to_seconds)) %>%
+slice_head(n = 10) %>%
+summarise(avg_time = mean(swim_time, na.rm = TRUE)) %>%
+pull(avg_time)
+results[cycle, discipline] <- avg_time
+}
+}
+# Ergebnisse als CSV speichern
+output_file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/ergebnis.csv"
+write.csv(results, file = output_file_path, row.names = TRUE)
+write.csv(results, file = output_file_path, row.names = TRUE)
+library(readr)
+# Verzeichnispfad und Dateiname
+file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/2000_400F.csv"
+# Versuche, die Datei mit unterschiedlichen Kodierungen zu lesen
+try_encodings <- c("UTF-8", "latin1", "UTF-16")
+for (encoding in try_encodings) {
+cat("Versuche zu lesen mit Kodierung:", encoding, "\n")
+try({
+data <- read_csv(file_path, locale = locale(encoding = encoding))
+print(head(data))
+}, silent = TRUE)
+}
+source("~/.active-rstudio-document", echo=TRUE)
+library(readr)
+# Verzeichnispfad und Dateiname
+file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/2000_400F.csv"
+# Versuche, die Datei mit unterschiedlichen Kodierungen zu lesen
+try_encodings <- c("UTF-8", "latin1", "UTF-16")
+for (encoding in try_encodings) {
+cat("Versuche zu lesen mit Kodierung:", encoding, "\n")
+try({
+data <- read_csv(file_path, locale = locale(encoding = encoding))
+print(head(data))
+}, silent = TRUE)
+}
+View(data)
+View(data)
+# Laden der erforderlichen Bibliotheken
+library(readr)
+# Dateipfad zur CSV-Datei
+file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/top10_test1.csv"
+# Laden der Daten aus der CSV-Datei
+data <- read_csv(file_path, skip = 1) # skip = 1, um die Kopfzeile zu überspringen, falls notwendig
+# Konvertierungsfunktion: mm:ss,00 zu Sekunden
+convert_to_seconds <- function(time) {
+parts <- strsplit(time, split = ":", fixed = TRUE)[[1]]
+if (length(parts) < 2) {
+return(NA)
+}
+minutes <- as.numeric(parts[1])
+second_parts <- strsplit(parts[2], split = " ", fixed = TRUE)[[1]]
+seconds <- as.numeric(second_parts[1])
+milliseconds <- as.numeric(second_parts[2])
+total_seconds <- minutes * 60 + seconds + milliseconds / 100
+return(total_seconds)
+}
+# Anwenden der Konvertierungsfunktion auf den Bereich B2:R61
+for (col in names(data)[2:18]) { # Erste Spalte (A) auslassen, Spalten B bis R bearbeiten
+data[, col] <- sapply(data[, col], convert_to_seconds)
+}
+# Zeige die ersten Zeilen der konvertierten Daten
+head(data)
+# Laden der erforderlichen Bibliotheken
+library(readr)
+# Dateipfad zur CSV-Datei
+file_path <- "//Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/Top10.csv"
+# Laden der Daten aus der CSV-Datei
+data <- read_csv(file_path)
+Top10 <- read.csv2("~/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/Top10.csv")
+View(Top10)
+# Zeige die ersten Zeilen der konvertierten Daten
+head(Top10)
+colnames(Top10) <- c("50 B";"50 S";"50 F";"50 R";"100 B";"100 S";"100 F";	"100 R";"200 B";"200 S";"200 F";"200 R";"200 L";"400 F";"400 L";"800 F";"1500 F")
+colnames(Top10) <- c("50 B","50 S","50 F","50 R","100 B","100 S","100 F",	"100 R","200 B","200 S","200 F","200 R","200 L","400 F","400 L","800 F","1500 F")
+# Aufteilen in 6 Zeitintervalle (jeweils 10 Spalten)
+df_list <- list()
+for (i in 1:6) {
+start_col <- (i - 1) * 10 + 1
+end_col <- i * 10
+df_list[[i]] <- df[, start_col:end_col, drop = FALSE]
+}
+# Laden der erforderlichen Bibliotheken
+library(readr)
+# Zeige die ersten Zeilen der konvertierten Daten
+head(Top10)
+# Aufteilen in 6 Zeitintervalle (jeweils 10 Spalten)
+df_list <- list()
+for (i in 1:6) {
+start_col <- (i - 1) * 10 + 1
+end_col <- i * 10
+df_list[[i]] <- df[, start_col:end_col, drop = FALSE]
+}
+# Annahme: Ihre Daten sind in einem Datenrahmen df
+# Spaltennamen, die Sie in Zeitintervalle aufteilen möchten
+spalten_namen <- c("50 B", "50 S", "50 F", "50 R", "100 B", "100 S", "100 F", "100 R", "200 B", "200 S", "200 F", "200 R", "200 L", "400 F", "400 L", "800 F", "1500 F")
+# Aufteilen in 6 Zeitintervalle (jeweils 10 Spalten)
+df_list <- list()
+for (i in 1:6) {
+start_col <- (i - 1) * 10 + 1
+end_col <- i * 10
+selected_cols <- c("Zeitspalte", spalten_namen[start_col:end_col]) # Ersetzen Sie "Zeitspalte" durch den tatsächlichen Namen der Zeitspalte in Ihrem Datenrahmen
+df_list[[i]] <- df[selected_cols]
+}
+# Annahme: Ihre Daten sind in einem Datenrahmen df
+# Spaltennamen, die Sie in Zeitintervalle aufteilen möchten
+spalten_namen <- c("50 B", "50 S", "50 F", "50 R", "100 B", "100 S", "100 F", "100 R", "200 B", "200 S", "200 F", "200 R", "200 L", "400 F", "400 L", "800 F", "1500 F")
+# Aufteilen in 6 Zeitintervalle (jeweils 10 Spalten)
+df_list <- list()
+for (i in 1:6) {
+start_col <- (i - 1) * 10 + 1
+end_col <- i * 10
+selected_cols <- spalten_namen[start_col:end_col]
+df_list[[i]] <- df[selected_cols]
+}
+# Geben Sie den vollständigen Pfad zur gewünschten CSV-Datei an
+dateipfad <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/Bestenliste.csv"
+# Exportieren Sie die Tabelle als CSV-Datei
+write.csv(Top10, file = dateipfad, row.names = FALSE)
+# Sie können die Option 'row.names = FALSE' verwenden, um die Zeilennummern in der CSV-Datei zu entfernen.
+View(data)
+# Definiere eine Funktion um Streckenlänge zu kategorisieren
+categorize_distance <- function(distance) {
+if (distance == 50) {
+return('Sprint')
+} else if (distance %in% c(100, 200)) {
+return('Mittel')
+} else if (distance %in% c(400, 800, 1500)) {
+return('Lang')
+} else {
+return('Other')
+}
+}
+source("~/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/BachelorArbeit/Schritt2.R", echo=TRUE)
+install.packages("dplyr")
+View(data)
+View(data)
+median_top10 <- read.csv("/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/median_values_reshaped.csv")
+median_Top10 <- read.csv("~/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Daten_weltspitze/median_values_reshaped.csv")
+View(median_Top10)
+head(median_top10)
+# Zuweisen der neuen Spaltennamen
+colnames(median_top10) <- c("50 B", "50 S", "50 F", "50 R",
+"100 B", "100 S", "100 F", "100 R",
+"200 B", "200 S", "200 F", "200 R",
+"200 L", "400 F", "400 L", "800 F", "1500 F")
+# Überprüfen der Änderungen
+print(head(median_top10))
+# Zuweisen der neuen Spaltennamen
+colnames(median_top10) <- c("Zeitraum";"50 B", "50 S", "50 F", "50 R",
+# Zuweisen der neuen Spaltennamen
+colnames(median_top10) <- c("Zeitraum","50 B", "50 S", "50 F", "50 R",
+"100 B", "100 S", "100 F", "100 R",
+"200 B", "200 S", "200 F", "200 R",
+"200 L", "400 F", "400 L", "800 F", "1500 F")
+# Überprüfen der Änderungen
+print(head(median_top10))
+# Ersetzen "median_values" durch den tatsächlichen Namen Ihres DataFrames
+median_values <- median_values %>%
+mutate(Zeitraum = case_when(
+Zeitraum == "Zeitraum 1 (Median)" ~ "2000",
+Zeitraum == "Zeitraum 2 (Median)" ~ "2004",
+Zeitraum == "Zeitraum 3 (Median)" ~ "2008",
+Zeitraum == "Zeitraum 4 (Median)" ~ "2012",
+Zeitraum == "Zeitraum 5 (Median)" ~ "2016",
+Zeitraum == "Zeitraum 6 (Median)" ~ "2021",
+TRUE ~ Zeitraum # behält den aktuellen Wert bei, falls keine Übereinstimmung gefunden wurde
+))
+# Ersetzen "median_Top10" durch den tatsächlichen Namen Ihres DataFrames
+median_top10 <- median_top10 %>%
+mutate(Zeitraum = case_when(
+Zeitraum == "Zeitraum 1 (Median)" ~ "2000",
+Zeitraum == "Zeitraum 2 (Median)" ~ "2004",
+Zeitraum == "Zeitraum 3 (Median)" ~ "2008",
+Zeitraum == "Zeitraum 4 (Median)" ~ "2012",
+Zeitraum == "Zeitraum 5 (Median)" ~ "2016",
+Zeitraum == "Zeitraum 6 (Median)" ~ "2021",
+TRUE ~ Zeitraum # behält den aktuellen Wert bei, falls keine Übereinstimmung gefunden wurde
+))
+head(median_top10)
+# Funktion, um den passenden Medianwert zu holen
+get_median <- function(year, discipline) {
+# Jahr dem richtigen Zeitraum zuordnen
+time_period <- case_when(
+year >= 2000 & year < 2004 ~ "2000",
+year >= 2004 & year < 2008 ~ "2004",
+year >= 2008 & year < 2012 ~ "2008",
+year >= 2012 & year < 2016 ~ "2012",
+year >= 2016 & year < 2020 ~ "2016",
+year >= 2020 ~ "2021"
+)
+# Funktion, um den passenden Medianwert zu holen
+get_median <- function(year, discipline) {
+# Jahr dem richtigen Zeitraum zuordnen
+time_period <- case_when(
+year >= 2000 & year < 2004 ~ "2000",
+year >= 2004 & year < 2008 ~ "2004",
+year >= 2008 & year < 2012 ~ "2008",
+year >= 2012 & year < 2016 ~ "2012",
+year >= 2016 & year < 2020 ~ "2016",
+year >= 2020 ~ "2021"
+)
+# Hole den Medianwert für die gegebene Disziplin und Zeitraum
+median_value <- median_top10[time_period, discipline]
+return(median_value)
+}
+# Fügen Sie die neue Spalte "Prozent Weltspitze" hinzu
+data <- data %>%
+rowwise() %>%
+mutate(Prozent_Weltspitze = get_median(Jahr, paste(Streckenlänge, Disziplin)) / Zeit)
+# Überprüfen Sie die ersten Zeilen der aktualisierten Tabelle
+head(data)
+# Überprüfen Sie die ersten Zeilen der aktualisierten Tabelle
+head(data)
+View(data)
+# Ersetzen "median_Top10" durch den tatsächlichen Namen Ihres DataFrames
+median_top10 <- median_top10 %>%
+mutate(Zeitraum = case_when(
+Zeitraum == "Zeitraum 1 (Median)" ~ "2000",
+Zeitraum == "Zeitraum 2 (Median)" ~ "2004",
+Zeitraum == "Zeitraum 3 (Median)" ~ "2008",
+Zeitraum == "Zeitraum 4 (Median)" ~ "2012",
+Zeitraum == "Zeitraum 5 (Median)" ~ "2016",
+Zeitraum == "Zeitraum 6 (Median)" ~ "2021",
+TRUE ~ Zeitraum # behält den aktuellen Wert bei, falls keine Übereinstimmung gefunden wurde
+))
+head(median_top10)
+library(dplyr)
+# Read the CSV file
+data <- read.csv("/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/gesamt_daten_bereinigt.csv")
+# Berechne das früheste Einstiegsalter für jeden Sportler und füge das dem Datensatz hinzu.
+data <- data %>%
+group_by(name, Jg) %>%
+mutate(Frühestes_Alter = min(Alter)) %>%
+ungroup()
+# Zähle die verschiedenen Lagen pro Sportler in jedem Alter
+data <- data %>%
+group_by(name, Jg, Alter) %>%
+mutate(Anzahl_Disziplinen = n_distinct(Disziplin)) %>%
+ungroup()
+# Definiere eine Funktion um Streckenlänge zu kategorisieren
+categorize_distance <- function(distance) {
+if (distance == 50) {
+return('Sprint')
+} else if (distance %in% c(100, 200)) {
+return('Mittel')
+} else if (distance %in% c(400, 800, 1500)) {
+return('Lang')
+} else {
+return('Other')
+}
+}
+# Funktion zum Datensatz beifügen
+data$Distanz_Kategorie <- sapply(data$Streckenlänge, categorize_distance)
+# Gruppieren by name, Jg, and Alter and zähle Distanzkategorie jeweils
+data <- data %>%
+group_by(name, Jg, Alter) %>%
+mutate(Anzahl_Distanz_Kategorien = n_distinct(Distanz_Kategorie)) %>%
+ungroup()
+# Temporäre Spalte entfernen
+data$Distanz_Kategorie <- NULL
+# Anzahl der einzigartigen Altersgruppen für jeden Schwimmer berechnen, in denen er in den Top100 erscheint
+data <- data %>%
+group_by(name, Jg) %>%
+mutate(Anzahl_Einzigartige_Altersgruppen = n_distinct(Alter)) %>%
+ungroup()
+# Abspeichern:
+# Pfad, wo die CSV-Datei gespeichert werden soll
+output_file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/updated_gesamt_daten.csv"
+# Speichern des Datenrahmens als CSV
+write.csv(data, file = output_file_path, row.names = FALSE)
+head(median_top10)
+# Funktion, um den passenden Medianwert zu holen
+get_median <- function(year, discipline) {
+# Jahr dem richtigen Zeitraum zuordnen
+time_period <- case_when(
+year >= 2000 & year < 2004 ~ "2000",
+year >= 2004 & year < 2008 ~ "2004",
+year >= 2008 & year < 2012 ~ "2008",
+year >= 2012 & year < 2016 ~ "2012",
+year >= 2016 & year < 2020 ~ "2016",
+year >= 2020 ~ "2021"
+)
+# Hole den Medianwert für die gegebene Disziplin und Zeitraum
+median_value <- median_top10[time_period, discipline]
+return(median_value)
+}
+# Fügen Sie die neue Spalte "Prozent Weltspitze" hinzu
+data <- data %>%
+rowwise() %>%
+mutate(Prozent_Weltspitze = get_median(Jahr, paste(Streckenlänge, Disziplin)) / Zeit)
+# Funktion, um den Medianwert basierend auf dem Jahr und der Disziplin zu holen
+get_median <- function(year, discipline, median_df) {
+time_period <- case_when(
+year >= 2000 & year < 2004 ~ "2000",
+year >= 2004 & year < 2008 ~ "2004",
+year >= 2008 & year < 2012 ~ "2008",
+year >= 2012 & year < 2016 ~ "2012",
+year >= 2016 & year < 2020 ~ "2016",
+year >= 2020 ~ "2021"
+)
+# Holt den Medianwert für die gegebene Disziplin und Zeitraum
+median_value <- median_df[[time_period, discipline]]
+return(median_value)
+}
+# Hinzufügen der neuen Spalte 'Prozent Weltspitze'
+data <- data %>%
+rowwise() %>%
+mutate(
+Zeitraum = case_when(
+Jahr >= 2000 & Jahr < 2004 ~ "2000",
+Jahr >= 2004 & Jahr < 2008 ~ "2004",
+Jahr >= 2008 & Jahr < 2012 ~ "2008",
+Jahr >= 2012 & Jahr < 2016 ~ "2012",
+Jahr >= 2016 & Jahr < 2020 ~ "2016",
+Jahr >= 2020 ~ "2021"
+),
+Disziplin_Kombi = paste(Streckenlänge, Disziplin),
+Median_Wert = sapply(1:n(), function(i) get_median(data$Jahr[i], data$Disziplin_Kombi[i], median_top10)),
+Prozent_Weltspitze = Zeit / Median_Wert
+)
+library(dbplyr)
+# Funktion, um den Medianwert basierend auf dem Jahr und der Disziplin zu holen
+get_median <- function(year, discipline, median_df) {
+time_period <- case_when(
+year >= 2000 & year < 2004 ~ "2000",
+year >= 2004 & year < 2008 ~ "2004",
+year >= 2008 & year < 2012 ~ "2008",
+year >= 2012 & year < 2016 ~ "2012",
+year >= 2016 & year < 2020 ~ "2016",
+year >= 2020 ~ "2021"
+)
+# Holt den Medianwert für die gegebene Disziplin und Zeitraum
+median_value <- median_df[[time_period, discipline]]
+return(median_value)
+}
+# Hinzufügen der neuen Spalte 'Prozent Weltspitze'
+data <- data %>%
+rowwise() %>%
+mutate(
+Zeitraum = case_when(
+Jahr >= 2000 & Jahr < 2004 ~ "2000",
+Jahr >= 2004 & Jahr < 2008 ~ "2004",
+Jahr >= 2008 & Jahr < 2012 ~ "2008",
+Jahr >= 2012 & Jahr < 2016 ~ "2012",
+Jahr >= 2016 & Jahr < 2020 ~ "2016",
+Jahr >= 2020 ~ "2021"
+),
+Disziplin_Kombi = paste(Streckenlänge, Disziplin),
+Median_Wert = sapply(1:n(), function(i) get_median(data$Jahr[i], data$Disziplin_Kombi[i], median_top10)),
+Prozent_Weltspitze = Zeit / Median_Wert
+)
+library(dplyr)
+# Funktion, um den Medianwert basierend auf dem Jahr und der Disziplin zu holen
+get_median <- function(year, discipline, median_df) {
+time_period <- case_when(
+year >= 2000 & year < 2004 ~ "2000",
+year >= 2004 & year < 2008 ~ "2004",
+year >= 2008 & year < 2012 ~ "2008",
+year >= 2012 & year < 2016 ~ "2012",
+year >= 2016 & year < 2020 ~ "2016",
+year >= 2020 ~ "2021"
+)
+# Holt den Medianwert für die gegebene Disziplin und Zeitraum
+median_value <- median_df[[time_period, discipline]]
+return(median_value)
+}
+# Hinzufügen der neuen Spalte 'Prozent Weltspitze'
+data <- data %>%
+rowwise() %>%
+mutate(
+Zeitraum = case_when(
+Jahr >= 2000 & Jahr < 2004 ~ "2000",
+Jahr >= 2004 & Jahr < 2008 ~ "2004",
+Jahr >= 2008 & Jahr < 2012 ~ "2008",
+Jahr >= 2012 & Jahr < 2016 ~ "2012",
+Jahr >= 2016 & Jahr < 2020 ~ "2016",
+Jahr >= 2020 ~ "2021"
+),
+Disziplin_Kombi = paste(Streckenlänge, Disziplin),
+Median_Wert = sapply(1:n(), function(i) get_median(data$Jahr[i], data$Disziplin_Kombi[i], median_top10)),
+Prozent_Weltspitze = Zeit / Median_Wert
+)
+# Überprüfen der ersten Zeilen des aktualisierten Dataframes
+head(data)
+# Install and load necessary packages
+install.packages("dplyr")
+library(dplyr)
+install.packages("dplyr")
+install.packages("dplyr")
+install.packages("dplyr")
+library(dbplyr)
+# Read the CSV file
+data <- read.csv("/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/gesamt_daten_bereinigt.csv")
+# Read the CSV file
+data <- read.csv("/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/gesamt_daten_bereinigt.csv")
+View(data)
+# Berechne das früheste Einstiegsalter für jeden Sportler und füge das dem Datensatz hinzu.
+data <- data %>%
+group_by(name, Jg) %>%
+mutate(Frühestes_Alter = min(Alter)) %>%
+ungroup()
+# Zähle die verschiedenen Lagen pro Sportler in jedem Alter
+data <- data %>%
+group_by(name, Jg, Alter) %>%
+mutate(Anzahl_Disziplinen = n_distinct(Disziplin)) %>%
+ungroup()
+# Definiere eine Funktion um Streckenlänge zu kategorisieren
+categorize_distance <- function(distance) {
+if (distance == 50) {
+return('Sprint')
+} else if (distance %in% c(100, 200)) {
+return('Mittel')
+} else if (distance %in% c(400, 800, 1500)) {
+return('Lang')
+} else {
+return('Other')
+}
+}
+# Funktion zum Datensatz beifügen
+data$Distanz_Kategorie <- sapply(data$Streckenlänge, categorize_distance)
+# Gruppieren by name, Jg, and Alter and zähle Distanzkategorie jeweils
+data <- data %>%
+group_by(name, Jg, Alter) %>%
+mutate(Anzahl_Distanz_Kategorien = n_distinct(Distanz_Kategorie)) %>%
+ungroup()
+# Temporäre Spalte entfernen
+data$Distanz_Kategorie <- NULL
+# Anzahl der einzigartigen Altersgruppen für jeden Schwimmer berechnen, in denen er in den Top100 erscheint
+data <- data %>%
+group_by(name, Jg) %>%
+mutate(Anzahl_Einzigartige_Altersgruppen = n_distinct(Alter)) %>%
+ungroup()
+# Abspeichern:
+# Pfad, wo die CSV-Datei gespeichert werden soll
+output_file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/updated_gesamt_daten.csv"
+# Speichern des Datenrahmens als CSV
+write.csv(data, file = output_file_path, row.names = FALSE)
+# Zuweisen der neuen Spaltennamen
+colnames(median_top10) <- c("Zeitraum","50 B", "50 S", "50 F", "50 R",
+"100 B", "100 S", "100 F", "100 R",
+"200 B", "200 S", "200 F", "200 R",
+"200 L", "400 F", "400 L", "800 F", "1500 F")
+source("~/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/BachelorArbeit/Schritt2.R", echo=TRUE)

@@ -1,0 +1,114 @@
+# 1. Laden der notwendigen Pakete
+if(!require(dplyr)) {
+  install.packages("dplyr")
+  library(dplyr)
+}
+
+if(!require(tidyr)) {
+  install.packages("tidyr")
+  library(tidyr)
+}
+
+if(!require(glmnet)) {
+  install.packages("glmnet")
+  library(glmnet)
+}
+
+if(!require(pROC)) {
+  install.packages("pROC")
+  library(pROC)
+}
+
+if(!require(caret)) {
+  install.packages("caret")
+  library(caret)
+}
+
+# Zusätzliche Pakete
+if(!require(broom)) {
+  install.packages("broom")
+  library(broom)
+}
+
+if(!require(car)) {
+  install.packages("car")
+  library(car)  # Notwendig für die VIF-Berechnung
+}
+
+# 2. Laden des Datensatzes
+data <- read.csv("/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/extended_dataset_processed.csv")
+
+# 3. Definieren der Zielvariable basierend auf den FINA-Punkten im Alter von 18 Jahren (nur zwei Gruppen)
+data <- data %>%
+  group_by(unique_id, Event) %>%
+  mutate(group = case_when(
+    Fina < 750 & Alter == 18 ~ 2,    # Gruppe 2: FINA < 750
+    Fina >= 750 & Alter == 18 ~ 1,   # Gruppe 1: FINA >= 750
+    TRUE ~ NA_real_  # Setzt NA für alle anderen Altersgruppen
+  )) %>%
+  fill(group, .direction = "downup") %>%
+  ungroup()
+
+# Entfernen von Zeilen mit fehlenden Gruppenwerten
+data_clean <- data %>% filter(!is.na(group))
+
+# 4. Behandlung fehlender Werte: Ersetzen von NA-Werten in numerischen Variablen durch den Median
+numeric_features <- c("Frühestes_Alter", "improvement_rate", "max_yearly_improvement", 
+                      "years_in_top100", "max_dist_categories", "max_disciplines", 
+                      "fina_16", "z_time_ratio", "jaehrliche_verbesserung_prozent")
+
+data_clean[numeric_features] <- data_clean[numeric_features] %>%
+  mutate(across(everything(), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+# Wandle die Zielvariable in einen Faktor um
+data_clean$group <- as.factor(data_clean$group)
+
+# 5. Logistic Regression Modell erstellen
+logit_model <- glm(group ~ Frühestes_Alter + improvement_rate + max_yearly_improvement + 
+                     years_in_top100 + max_dist_categories + max_disciplines + fina_16 + 
+                     z_time_ratio + jaehrliche_verbesserung_prozent, 
+                   data = data_clean, family = binomial)
+
+# 6. Berechnung der VIF-Werte zur Prüfung auf Multikollinearität
+vif_values <- vif(logit_model)
+
+# VIF-Werte anzeigen
+print("VIF-Werte für die Variablen:")
+print(vif_values)
+
+# 7. Koeffizienten extrahieren und in einer Tabelle anzeigen
+coefficients_summary <- tidy(logit_model, conf.int = TRUE)
+
+# Tabelle anzeigen mit Koeffizienten, Standardfehler, Z-Wert, P-Wert, Konfidenzintervallen
+print("Koeffizienten und Konfidenzintervalle:")
+print(coefficients_summary)
+
+# 8. Berechnung der Ergebnisse für Variable, B, SD, Z-Wert, p-Wert, 95% Konfidenzintervall, e^B, und 95% Konfidenzintervall für e^B
+coefficients_summary <- summary(logit_model)
+
+# Extrahiere Koeffizienten, Standardfehler, Z-Wert und P-Wert
+coefficients_table <- as.data.frame(coefficients_summary$coefficients)
+coefficients_table$Variable <- rownames(coefficients_table)
+
+# Berechne das Konfidenzintervall für die Koeffizienten
+confint_values <- confint(logit_model)
+
+# Berechne Odds Ratio (e^B) und das Konfidenzintervall dafür
+odds_ratio <- exp(coefficients_table[,1])
+odds_ratio_confint <- exp(confint_values)
+
+# Füge alle Daten in einer Tabelle zusammen
+final_table <- data.frame(
+  Variable = rownames(coefficients_table),
+  B = coefficients_table[,1],            # Koeffizient
+  SD = coefficients_table[,2],           # Standardfehler
+  Z_Value = coefficients_table[,3],      # Z-Wert
+  p_value = coefficients_table[,4],      # p-Wert
+  `95% CI (B)` = paste0(round(confint_values[,1], 4), " to ", round(confint_values[,2], 4)),  # 95% Konfidenzintervall für B
+  `e^B` = round(odds_ratio, 4),          # e^B (Odds Ratio)
+  `95% CI (e^B)` = paste0(round(odds_ratio_confint[,1], 4), " to ", round(odds_ratio_confint[,2], 4))  # 95% Konfidenzintervall für e^B
+)
+
+# Zeige die finale Tabelle an
+print("Finale Tabelle der Ergebnisse:")
+print(final_table)

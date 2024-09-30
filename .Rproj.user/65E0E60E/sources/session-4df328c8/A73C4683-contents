@@ -1,0 +1,140 @@
+# Bibliotheken laden
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggrepel)
+
+# Datei laden
+file_path <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/ergebnisse_final_with_years_in_top100_updated.csv"
+df <- read.csv(file_path)
+
+# Funktion zur Berechnung der prozentualen Verbesserung basierend auf einem gegebenen Basisalter
+calculate_percent_improvement <- function(df, baseline_age) {
+  baseline_col <- paste0("baseline_time_", baseline_age, "y")
+  improvement_col <- paste0("percent_individual_improvement_", baseline_age, "y")
+  
+  df <- df %>%
+    group_by(name, Jg, Streckenlänge, Disziplin) %>%
+    mutate(!!baseline_col := ifelse(baseline_age %in% Alter, Zeit[Alter == baseline_age], NA)) %>%
+    ungroup() %>%
+    mutate(!!improvement_col := ifelse(!is.na(!!sym(baseline_col)) & !!sym(baseline_col) != 0, 
+                                       ((!!sym(baseline_col) - Zeit) / !!sym(baseline_col)) * 100, 
+                                       NA))
+  return(df)
+}
+
+# Funktion zur Generierung der Kurvendaten für jede Disziplin und Streckenlänge
+generate_curve_data <- function(df, streckenlänge, disziplin, baseline_age) {
+  improvement_col <- paste0("percent_individual_improvement_", baseline_age, "y")
+  
+  # Filterung der Daten für die spezifische Disziplin und Streckenlänge
+  disziplin_df <- df %>%
+    filter(Streckenlänge == streckenlänge, Disziplin == disziplin, !is.na(!!sym(improvement_col)))
+  
+  if (nrow(disziplin_df) > 0) {
+    # Vorbereitung der Daten für die quadratische Regression
+    ages <- disziplin_df$Alter
+    improvements <- disziplin_df[[improvement_col]]
+    
+    if (length(unique(ages)) > 2) {
+      # Quadratische Regression
+      model <- lm(improvements ~ poly(ages, 2, raw = TRUE))
+      
+      # Vorhersage der Verbesserungen basierend auf dem Modell
+      ages_range <- seq(baseline_age, 18, by = 1)
+      improvements_pred <- predict(model, newdata = data.frame(ages = ages_range))
+      
+      # Erstellen eines DataFrames für die Vorhersagedaten
+      pred_df <- data.frame(Alter = ages_range, 
+                            percent_improvement = improvements_pred, 
+                            Streckenlänge = streckenlänge, 
+                            Disziplin = disziplin,
+                            baseline_age = baseline_age)
+      
+      return(pred_df)
+    }
+  }
+  return(NULL)
+}
+
+# Einzigartige Kombinationen von Streckenlänge und Disziplin
+unique_combinations <- df %>%
+  select(Streckenlänge, Disziplin) %>%
+  distinct()
+
+# Basisalter, für die die Berechnungen durchgeführt werden sollen
+baseline_ages <- 11:14
+
+# Initialisieren des erweiterten Datensatzes für Kurvendaten
+curve_data_combined <- data.frame()
+
+for (baseline_age in baseline_ages) {
+  # Berechnung der prozentualen Verbesserung für das gegebene Basisalter
+  df <- calculate_percent_improvement(df, baseline_age)
+  
+  # Generieren der Kurvendaten für jede Disziplin und Streckenlänge
+  curve_data_list <- lapply(1:nrow(unique_combinations), function(i) {
+    generate_curve_data(df, unique_combinations$Streckenlänge[i], unique_combinations$Disziplin[i], baseline_age)
+  })
+  
+  # Zusammenführen aller Kurvendaten in einen DataFrame
+  curve_data <- do.call(rbind, curve_data_list)
+  
+  if (!is.null(curve_data)) {
+    curve_data$percent_general_improvement <- curve_data$percent_improvement
+    curve_data <- curve_data %>%
+      select(-percent_improvement)
+    curve_data_combined <- rbind(curve_data_combined, curve_data)
+  }
+}
+
+# Anzeigen der kombinierten Kurvendaten
+print(curve_data_combined)
+
+# Speichern des kombinierten Kurvendatensatzes als CSV-Datei
+output_file_path_curve_data_combined <- "/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/curve_data_combined.csv"
+write.csv(curve_data_combined, output_file_path_curve_data_combined, row.names = FALSE)
+
+# Funktion zur Erstellung der Grafik für ein bestimmtes Basisalter
+plot_improvement_curves <- function(curve_data, baseline_age) {
+  improvement_col <- "percent_general_improvement"
+  
+  # Sicherstellen, dass die Daten nicht leer sind
+  if (nrow(curve_data) == 0 || all(is.na(curve_data[[improvement_col]]))) {
+    message(paste("Keine Daten verfügbar für Basisalter", baseline_age))
+    return(NULL)
+  }
+  
+  curve_data$Disziplin <- as.factor(curve_data$Disziplin)
+  curve_data$Streckenlänge <- as.factor(curve_data$Streckenlänge)
+  
+  ggplot(curve_data, aes(x = Alter, y = !!sym(improvement_col), color = Disziplin, linetype = Streckenlänge)) +
+    geom_line(size = 1.2) +
+    scale_color_manual(values = disziplin_colors) +
+    scale_linetype_manual(values = line_types) +
+    scale_y_continuous(breaks = seq(floor(min(curve_data[[improvement_col]], na.rm = TRUE) / 5) * 5, 
+                                    ceiling(max(curve_data[[improvement_col]], na.rm = TRUE) / 5) * 5, by = 5)) +
+    labs(x = 'Alter', y = 'Prozentuale Verbesserung', 
+         title = paste('Quadratische Kurven der prozentualen Verbesserung für Basisalter', baseline_age),
+         color = 'Disziplin', linetype = 'Streckenlänge') +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    geom_hline(yintercept = 0, linetype = 'dashed', color = 'gray') +
+    theme(legend.position = "right") +
+    geom_text_repel(aes(label = ifelse(Alter == max(Alter), paste(Streckenlänge, Disziplin, sep = " - "), "")), 
+                    nudge_x = 0.5, size = 3, show.legend = FALSE)
+}
+
+# Daten für jedes Basisalter plotten
+for (baseline_age in baseline_ages) {
+  curve_data_filtered <- curve_data_combined %>%
+    filter(baseline_age == !!baseline_age)
+  
+  plot <- plot_improvement_curves(curve_data_filtered, baseline_age)
+  
+  # Speichern des Plots als Bilddatei, wenn Daten verfügbar sind
+  if (!is.null(plot)) {
+    output_file_path_plot <- paste0("/Users/fbongarz/Library/Mobile Documents/com~apple~CloudDocs/02_Studium/Bachelor-Arbeit/Data/improvement_curve_", baseline_age, "y.png")
+    ggsave(output_file_path_plot, plot, width = 10, height = 6)
+  }
+}
